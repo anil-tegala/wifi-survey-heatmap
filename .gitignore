@@ -69,6 +69,7 @@ include/
 .idea/
 result.json
 *.json
+*.png
 /jitter_*.png
 /quality_*.png
 /rssi_*.png
