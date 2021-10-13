@@ -36,10 +36,7 @@ Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
 """
 
 from setuptools import setup, find_packages
-from wifi_survey_heatmap.version import VERSION, PROJECT_URL
-
-with open('README.rst') as file:
-    long_description = file.read()
+from App.version import VERSION, PROJECT_URL
 
 requires = [
     'iperf3==0.1.11',
@@ -74,20 +71,20 @@ setup(
     author_email='jason@jasonantman.com',
     packages=find_packages(),
     url=PROJECT_URL,
-    description='A Python application for Linux machines to perform WiFi site'
+    description='Generate heatmaps for a wifi-survey test which is being done with iperf3.',
+    long_description='A Python application for Linux machines to perform WiFi site'
                 ' surveys and present the results as a heatmap overlayed on '
                 'a floorplan.',
-    long_description=long_description,
     install_requires=requires,
     setup_requires=['cffi>=1.0.0'],
     keywords="wifi wireless wlan survey map heatmap",
     classifiers=classifiers,
     entry_points={
         'console_scripts': [
-            'wifi-scan = wifi_survey_heatmap.scancli:main',
-            'wifi-survey = wifi_survey_heatmap.ui:main',
-            'wifi-heatmap = wifi_survey_heatmap.heatmap:main',
-            'wifi-heatmap-thresholds = wifi_survey_heatmap.thresholds:main'
+            'wifi-scan = App.scancli:main',
+            'wifi-survey = App.ui:main',
+            'wifi-heatmap = App.heatmap:main',
+            'wifi-heatmap-thresholds = App.thresholds:main'
         ]
     },
     zip_safe=False

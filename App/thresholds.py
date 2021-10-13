@@ -41,7 +41,7 @@ import logging
 import json
 from collections import defaultdict
 
-from wifi_survey_heatmap.heatmap import HeatMapGenerator
+from App.heatmap import HeatMapGenerator
 
 FORMAT = "[%(asctime)s %(levelname)s] %(message)s"
 logging.basicConfig(level=logging.WARNING, format=FORMAT)

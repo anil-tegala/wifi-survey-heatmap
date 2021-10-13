@@ -43,8 +43,8 @@ import json
 import os
 import subprocess
 
-from wifi_survey_heatmap.collector import Collector
-from wifi_survey_heatmap.libnl import Scanner
+from App.collector import Collector
+from App.libnl import Scanner
 
 FORMAT = "[%(asctime)s %(levelname)s] %(message)s"
 logging.basicConfig(level=logging.WARNING, format=FORMAT)

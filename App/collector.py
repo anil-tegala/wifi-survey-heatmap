@@ -38,7 +38,7 @@ Jason Antman <jason@jasonantman.com> <http://www.jasonantman.com>
 import logging
 from time import sleep
 
-from wifi_survey_heatmap.libnl import Scanner
+from App.libnl import Scanner
 
 import iperf3
 

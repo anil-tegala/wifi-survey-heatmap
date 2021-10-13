@@ -41,7 +41,7 @@ import argparse
 import logging
 import os
 
-from wifi_survey_heatmap.collector import Collector
+from App.collector import Collector
 
 FORMAT = "[%(asctime)s %(levelname)s] %(message)s"
 logging.basicConfig(level=logging.WARNING, format=FORMAT)
