@@ -46,12 +46,12 @@ import numpy as np
 import pandas as pd
 import matplotlib.cm as cm
 import matplotlib.pyplot as pp
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+# from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.interpolate import Rbf
 from pylab import imread, imshow
 from matplotlib.offsetbox import AnchoredText, OffsetImage, AnnotationBbox
 from matplotlib.patheffects import withStroke
-from matplotlib.font_manager import FontManager
+# from matplotlib.font_manager import FontManager
 from matplotlib.colors import ListedColormap
 import matplotlib
 
@@ -144,7 +144,8 @@ class HeatMapGenerator(object):
 
     def __init__(
             self, image_path, title, showpoints, cname, contours, ignore_ssids=[], aps=None,
-            thresholds=None, test_result=None, ap_image=None, ap_icon=None, ap_cords=[]
+            thresholds=None, test_result=None, ap_image=None, ap_icon=None, ap_cords=[],
+            min_limit=None, max_limit=None
     ):
         self._ap_names = {}
         if aps is not None:
@@ -158,11 +159,14 @@ class HeatMapGenerator(object):
         self._corners = [(0, 0), (0, 0), (0, 0), (0, 0)]
         self._title = title
         self._showpoints = showpoints
+        self._cname = cname
         self._cmap = self.get_cmap(cname)
         self._contours = contours
         self._test_result = test_result
         self._ap_image = ap_image
         self._ap_cords = [int(x) for x in ap_cords]
+        self._min_limit = min_limit
+        self._max_limit = max_limit
         if not self._title.endswith('.json'):
             self._title += '.json'
         if self._test_result is not None and not self._test_result.endswith('.csv'):
@@ -467,15 +471,36 @@ class HeatMapGenerator(object):
         # Render the interpolated data to the plot
         ax.axis('off')
         # begin color mapping
-        norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=True)
-        mapper = cm.ScalarMappable(norm=norm, cmap=self._cmap)
+        if title == "Wi-Fi channel":
+            self._cmap = self.get_cmap("BrBG")
+        else:
+            self._cmap = self.get_cmap(self._cname)
+
+        if (title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") \
+                or (title == "Upload (TCP) [MBit/s]") or (title == "Upload (UDP) [MBit/s]") \
+                and (self._max_limit is not None) and (self._min_limit is not None):
+            norm = matplotlib.colors.Normalize(vmin=self._min_limit, vmax=self._max_limit, clip=True)
+            mapper = cm.ScalarMappable(norm=norm, cmap=self._cmap)
+        else:
+            norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=True)
+            mapper = cm.ScalarMappable(norm=norm, cmap=self._cmap)
         # end color mapping
-        image = ax.imshow(
-            z,
-            extent=(0, self._image_width, self._image_height, 0),
-            alpha=0.5, zorder=100,
-            cmap=self._cmap, vmin=vmin, vmax=vmax
-        )
+        if (title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") \
+                or (title == "Upload (TCP) [MBit/s]") or (title == "Upload (UDP) [MBit/s]") \
+                and (self._max_limit is not None) and (self._min_limit is not None):
+            image = ax.imshow(
+                z,
+                extent=(0, self._image_width, self._image_height, 0),
+                alpha=0.5, zorder=100,
+                cmap=self._cmap, vmin=self._min_limit, vmax=self._max_limit
+            )
+        else:
+            image = ax.imshow(
+                z,
+                extent=(0, self._image_width, self._image_height, 0),
+                alpha=0.5, zorder=100,
+                cmap=self._cmap, vmin=vmin, vmax=vmax
+            )
 
         # Draw contours if requested and meaningful in this plot
         if self._contours is not None and vmin != vmax:
@@ -485,10 +510,20 @@ class HeatMapGenerator(object):
             ax.clabel(CS, inline=1, fontsize=1)
         cbar = fig.colorbar(image)
 
-        # Print only one ytick label when there is only one value to be shown
-        if vmin == vmax:
-            cbar.set_ticks([vmin])
-
+        # show wifi-channels as per the Dual/Tri Band
+        if title == "Wi-Fi channel":
+            unique_channels = []
+            for a in a['channel']:
+                if a in unique_channels:
+                    continue
+                else:
+                    unique_channels.append(a)
+                    unique_channels.sort()
+            cbar.set_ticks([x for x in unique_channels])
+        else:
+            # Print only one ytick label when there is only one value to be shown
+            if vmin == vmax:
+                cbar.set_ticks([vmin])
         # Draw floorplan itself to the lowest layer with full opacity
         ax.imshow(self._layout, interpolation='bicubic', zorder=1, alpha=1)
         labelsize = 1
@@ -567,6 +602,12 @@ def parse_args(argv):
                    help='path of the Access Point Icon', default=None)
     p.add_argument('-l', '--ap-coords', type=str, dest='coords', action='store',
                    help='set position of the AP Icon', default=[])
+    p.add_argument('-max', '--max_limit', dest='max_limit', type=int, action='store',
+                   default=None,
+                   help='Maximum Threshold to be set for upload and download with tcp/udp')
+    p.add_argument('-min', '--min_limit', dest='min_limit', type=int, action='store',
+                   default=None,
+                   help='Minimum Threshold to be set for upload and download with tcp/udp')
     args = p.parse_args(argv)
     if len(args.coords) > 1:
         args.coords = args.coords.split(",")
@@ -616,7 +657,7 @@ def main():
     HeatMapGenerator(
         args.IMAGE, args.TITLE, showpoints, args.CNAME, args.N,
         ignore_ssids=args.ignore, aps=args.aps, thresholds=args.thresholds, test_result=args.RESULT, ap_image=args.ICON,
-        ap_cords=args.coords
+        ap_cords=args.coords, min_limit=args.min_limit, max_limit=args.max_limit
     ).generate()
 
 
