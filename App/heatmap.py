@@ -44,6 +44,7 @@ import numpy
 from collections import defaultdict
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.pyplot as pp
 # from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -457,6 +458,15 @@ class HeatMapGenerator(object):
             vmax = max(a[key])
             logger.debug('Using calculated max threshold: %s', vmax)
         logger.info("{} has range [{},{}]".format(key, vmin, vmax))
+        # set index of channels in color bar
+        if title == "Wi-Fi channel":
+            channel_label = []
+            channels = list(set(a['channel']))
+            channels.sort()
+            for i in range(len(channels)):
+                for j in range(len(a[key])):
+                    if a[key][j] == channels[i]:
+                        a[key][j] = i + 1
         # Interpolate the data only if there is something to interpolate
         if vmin != vmax:
             rbf = Rbf(
@@ -472,7 +482,7 @@ class HeatMapGenerator(object):
         ax.axis('off')
         # begin color mapping
         if title == "Wi-Fi channel":
-            self._cmap = self.get_cmap("BrBG")
+            self._cmap = cm.jet_r
         else:
             self._cmap = self.get_cmap(self._cname)
 
@@ -480,6 +490,9 @@ class HeatMapGenerator(object):
                 or (title == "Upload (TCP) [MBit/s]") or (title == "Upload (UDP) [MBit/s]") \
                 and (self._max_limit is not None) and (self._min_limit is not None):
             norm = matplotlib.colors.Normalize(vmin=self._min_limit, vmax=self._max_limit, clip=True)
+            mapper = cm.ScalarMappable(norm=norm, cmap=self._cmap)
+        elif title == "Wi-Fi channel":
+            norm = mpl.colors.BoundaryNorm(channels, self._cmap.N, extend='both')
             mapper = cm.ScalarMappable(norm=norm, cmap=self._cmap)
         else:
             norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=True)
@@ -493,6 +506,13 @@ class HeatMapGenerator(object):
                 extent=(0, self._image_width, self._image_height, 0),
                 alpha=0.5, zorder=100,
                 cmap=self._cmap, vmin=self._min_limit, vmax=self._max_limit
+            )
+        elif title == "Wi-Fi channel":
+            image = ax.imshow(
+                z,
+                extent=(0, self._image_width, self._image_height, 0),
+                alpha=0.5, zorder=100,
+                cmap=self._cmap
             )
         else:
             image = ax.imshow(
@@ -509,17 +529,12 @@ class HeatMapGenerator(object):
                             alpha=0.3, zorder=150, origin='upper')
             ax.clabel(CS, inline=1, fontsize=1)
         cbar = fig.colorbar(image)
-
         # show wifi-channels as per the Dual/Tri Band
         if title == "Wi-Fi channel":
-            unique_channels = []
-            for a in a['channel']:
-                if a in unique_channels:
-                    continue
-                else:
-                    unique_channels.append(a)
-                    unique_channels.sort()
-            cbar.set_ticks([x for x in unique_channels])
+            temp = list(set(a[key]))
+            temp.sort()
+            cbar.set_ticks([x for x in temp])
+            cbar.set_ticklabels([f"2.4GHz - (CH {channels[0]})", f"5GHz-Low - (CH {channels[1]})", f"5GHz-High - (CH {channels[2]})"])
         else:
             # Print only one ytick label when there is only one value to be shown
             if vmin == vmax:
