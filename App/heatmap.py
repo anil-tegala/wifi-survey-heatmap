@@ -486,9 +486,9 @@ class HeatMapGenerator(object):
         else:
             self._cmap = self.get_cmap(self._cname)
 
-        if (title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") \
-                or (title == "Upload (TCP) [MBit/s]") or (title == "Upload (UDP) [MBit/s]") \
-                and (self._max_limit is not None) and (self._min_limit is not None):
+        if ((title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") \
+              or (title == "Upload (TCP) [MBit/s]") or (title == "Upload (UDP) [MBit/s]")) \
+             and (self._min_limit != None) and (self._max_limit != None):
             norm = matplotlib.colors.Normalize(vmin=self._min_limit, vmax=self._max_limit, clip=True)
             mapper = cm.ScalarMappable(norm=norm, cmap=self._cmap)
         elif title == "Wi-Fi channel":
@@ -498,9 +498,9 @@ class HeatMapGenerator(object):
             norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=True)
             mapper = cm.ScalarMappable(norm=norm, cmap=self._cmap)
         # end color mapping
-        if (title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") \
-                or (title == "Upload (TCP) [MBit/s]") or (title == "Upload (UDP) [MBit/s]") \
-                and (self._max_limit is not None) and (self._min_limit is not None):
+        if ((title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") \
+            or (title == "Upload (TCP) [MBit/s]") or (title == "Upload (UDP) [MBit/s]")) \
+                and (self._min_limit != None) and (self._max_limit != None):
             image = ax.imshow(
                 z,
                 extent=(0, self._image_width, self._image_height, 0),
