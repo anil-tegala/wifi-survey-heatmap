@@ -294,7 +294,7 @@ class HeatMapGenerator(object):
                 if 'udp-reverse' in self._data['survey_points'][i]['result']:
                     self._data['survey_points'][i]['result']['udp-reverse']['Mbps'] = self.test_data[i]['UDP UPLOAD']
                     self._data['survey_points'][i]['result']['udp-reverse']['jitter_ms'] = self.test_data[i][
-                    'JITTER UPLOAD']
+                        'JITTER UPLOAD']
                 # if 'bitrate' in self._data['survey_points'][i]['result']:
                 #     self._data['survey_points'][i]['result']['bitrate'] = self.test_data[i]['channel_bitrate']
                 # self._data['survey_points'][i]['result']['tx_power'] = self.test_data[i]['tx_power']
@@ -467,6 +467,9 @@ class HeatMapGenerator(object):
                 for j in range(len(a[key])):
                     if a[key][j] == channels[i]:
                         a[key][j] = i + 1
+        if title == 'Signal quality [RSSI]':
+            vmin = -80
+            vmax = -20
         # Interpolate the data only if there is something to interpolate
         if vmin != vmax:
             rbf = Rbf(
@@ -486,9 +489,8 @@ class HeatMapGenerator(object):
         else:
             self._cmap = self.get_cmap(self._cname)
 
-        if ((title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") \
-              or (title == "Upload (TCP) [MBit/s]") or (title == "Upload (UDP) [MBit/s]")) \
-             and (self._min_limit != None) and (self._max_limit != None):
+        if ((title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") or (title == "Upload (TCP) [MBit/s]") or (title == "Upload (UDP) [MBit/s]")) \
+                and (self._min_limit is not None) and (self._max_limit is not None):
             norm = matplotlib.colors.Normalize(vmin=self._min_limit, vmax=self._max_limit, clip=True)
             mapper = cm.ScalarMappable(norm=norm, cmap=self._cmap)
         elif title == "Wi-Fi channel":
@@ -498,9 +500,9 @@ class HeatMapGenerator(object):
             norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=True)
             mapper = cm.ScalarMappable(norm=norm, cmap=self._cmap)
         # end color mapping
-        if ((title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") \
+        if ((title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]")
             or (title == "Upload (TCP) [MBit/s]") or (title == "Upload (UDP) [MBit/s]")) \
-                and (self._min_limit != None) and (self._max_limit != None):
+                and (self._min_limit is not None) and (self._max_limit is not None):
             image = ax.imshow(
                 z,
                 extent=(0, self._image_width, self._image_height, 0),
@@ -533,8 +535,15 @@ class HeatMapGenerator(object):
         if title == "Wi-Fi channel":
             temp = list(set(a[key]))
             temp.sort()
-            cbar.set_ticks([x for x in temp])
-            cbar.set_ticklabels([f"2.4GHz - (CH {channels[0]})", f"5GHz-Low - (CH {channels[1]})", f"5GHz-High - (CH {channels[2]})"])
+            if len(temp) == 2 and len(channels) == 2:
+                cbar.set_ticks([x for x in temp])
+                cbar.set_ticklabels([f"2.4GHz - (CH {channels[0]})", f"5GHz- (CH {channels[1]})"])
+            elif len(temp) == 3 and len(channels) == 3:
+                cbar.set_ticks([x for x in temp])
+                cbar.set_ticklabels([f"2.4GHz - (CH {channels[0]})", f"5GHz-Low (CH {channels[1]})", f"5GHz-High (CH {channels[2]})"])
+            elif len(temp) == len(channels):
+                cbar.set_ticks([x for x in temp])
+                cbar.set_ticklabels([f"Channel - {x}" for x in channels])
         else:
             # Print only one ytick label when there is only one value to be shown
             if vmin == vmax:
@@ -566,7 +575,7 @@ class HeatMapGenerator(object):
                     logger.error("number of coordinates (x,y) should be even in number")
                     exit()
                 else:
-                    for x, y in zip(*[iter(self._ap_cords)]*2):
+                    for x, y in zip(*[iter(self._ap_cords)] * 2):
                         print("Setting AP Icon at %dpx and %dpx" % (x, y))
                         ab = AnnotationBbox(imagebox, (x, y), frameon=False)
                         ax.add_artist(ab)
