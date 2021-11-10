@@ -146,7 +146,7 @@ class HeatMapGenerator(object):
     def __init__(
             self, image_path, title, showpoints, cname, contours, ignore_ssids=[], aps=None,
             thresholds=None, test_result=None, ap_image=None, ap_icon=None, ap_cords=[],
-            min_limit=None, max_limit=None
+            min_limit=None, max_limit=None, x_threshold=None
     ):
         self._ap_names = {}
         if aps is not None:
@@ -168,6 +168,7 @@ class HeatMapGenerator(object):
         self._ap_cords = [int(x) for x in ap_cords]
         self._min_limit = min_limit
         self._max_limit = max_limit
+        self._x_threshold = x_threshold
         if not self._title.endswith('.json'):
             self._title += '.json'
         if self._test_result is not None and not self._test_result.endswith('.csv'):
@@ -301,6 +302,8 @@ class HeatMapGenerator(object):
                 # self._data['survey_points'][i]['result']['frequency'] = self.test_data[i]['frequency'] * 1e-3
                 self._data['survey_points'][i]['result']['signal_mbm'] = self.test_data[i]['RSSI']
         else:
+            print('Survey Points: ', len(self._data['survey_points']))
+            print('Data Points: ', len(self.test_data))
             logger.error('Data values of %s and %s should be equal in length', self._title, self._test_result)
             exit()
 
@@ -445,6 +448,7 @@ class HeatMapGenerator(object):
         ax.set_title(title, fontsize=8)
         # ax.set_xlim(0, num_x)
         # ax.set_ylim(0, num_y)
+
         if 'min' in self.thresholds.get(key, {}):
             vmin = self.thresholds[key]['min']
             logger.debug('Using min threshold from thresholds: %s', vmin)
@@ -489,7 +493,15 @@ class HeatMapGenerator(object):
         else:
             self._cmap = self.get_cmap(self._cname)
 
-        if ((title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") or (title == "Upload (TCP) [MBit/s]") or (title == "Upload (UDP) [MBit/s]")) \
+        if ((title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") or (title == "Upload (TCP) ["
+                                                                                                      "MBit/s]") or (
+                title == "Upload (UDP) [MBit/s]")) and self._x_threshold is not None:
+            vmin = self._x_threshold
+            vmax = self._x_threshold
+
+        if ((title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") or (title == "Upload (TCP) ["
+                                                                                                      "MBit/s]") or (
+                title == "Upload (UDP) [MBit/s]")) \
                 and (self._min_limit is not None) and (self._max_limit is not None):
             norm = matplotlib.colors.Normalize(vmin=self._min_limit, vmax=self._max_limit, clip=True)
             mapper = cm.ScalarMappable(norm=norm, cmap=self._cmap)
@@ -551,7 +563,7 @@ class HeatMapGenerator(object):
         # Draw floorplan itself to the lowest layer with full opacity
         ax.imshow(self._layout, interpolation='bicubic', zorder=1, alpha=1)
         labelsize = 1
-        if (self._showpoints):
+        if self._showpoints:
             # begin plotting points
             for idx in range(0, len(a['x'])):
                 if (a['x'][idx], a['y'][idx]) in self._corners:
@@ -632,6 +644,8 @@ def parse_args(argv):
     p.add_argument('-min', '--min_limit', dest='min_limit', type=int, action='store',
                    default=None,
                    help='Minimum Threshold to be set for upload and download with tcp/udp')
+    p.add_argument('-x', '--x_threshold', dest='x_threshold', type=int, action='store', default=None,
+                   help='set Average threshold for upload and download with tcp/udp')
     args = p.parse_args(argv)
     if len(args.coords) > 1:
         args.coords = args.coords.split(",")
@@ -681,7 +695,7 @@ def main():
     HeatMapGenerator(
         args.IMAGE, args.TITLE, showpoints, args.CNAME, args.N,
         ignore_ssids=args.ignore, aps=args.aps, thresholds=args.thresholds, test_result=args.RESULT, ap_image=args.ICON,
-        ap_cords=args.coords, min_limit=args.min_limit, max_limit=args.max_limit
+        ap_cords=args.coords, min_limit=args.min_limit, max_limit=args.max_limit, x_threshold=args.x_threshold
     ).generate()
 
 
