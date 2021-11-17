@@ -270,13 +270,13 @@ class HeatMapGenerator(object):
                 row['result']['ssid']
             )
             a['ap'].append(ap + ' ({0:.1f} GHz)'.format(1e-3 * int(row['result']['frequency'])))
-            if '720P' in row['result']['buffer_720P']:
+            if 'buffer_720P' in row['result']:
                 a['buffer_720P'].append(row['result']['buffer_720P']['720P'])
-            if '1080P' in row['result']['buffer_1080P']:
+            if 'buffer_1080P' in row['result']:
                 a['buffer_1080P'].append(row['result']['buffer_1080P']['1080P'])
-            if '1440P' in row['result']['buffer_1440P']:
+            if 'buffer_1440P' in row['result']:
                 a['buffer_1440P'].append(row['result']['buffer_1440P']['1440P'])
-            if '2160P' in row['result']['buffer_2160P']:
+            if 'buffer_2160P' in row['result']:
                 a['buffer_2160P'].append(row['result']['buffer_2160P']['2160P'])
         print("(load_data) return value--",a) #--
         return a
