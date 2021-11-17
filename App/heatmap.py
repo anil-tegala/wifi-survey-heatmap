@@ -141,6 +141,10 @@ class HeatMapGenerator(object):
         'frequency': 'Wi-Fi frequency [GHz]',
         'channel': 'Wi-Fi channel',
         'channel_bitrate': 'Max channel bandwidth [MBit/s]',
+        'buffer_720P': 'Buffer rate 720P',
+        'buffer_1080P': 'Buffer rate 1080P',
+        'buffer_1440P': 'Buffer rate 1440P',
+        'buffer_2160P': 'Buffer rate 2160P',
     }
 
     def __init__(
@@ -234,7 +238,9 @@ class HeatMapGenerator(object):
 
     def load_data(self):
         a = defaultdict(list)
+        print("(Load_data)--",a) #--
         for row in self._data['survey_points']:
+            print("(Load_data)-- survey points",row) #--
             a['x'].append(row['x'])
             a['y'].append(row['y'])
             a['channel'].append(row['result']['channel'])
@@ -264,6 +270,15 @@ class HeatMapGenerator(object):
                 row['result']['ssid']
             )
             a['ap'].append(ap + ' ({0:.1f} GHz)'.format(1e-3 * int(row['result']['frequency'])))
+            if '720P' in row['result']['buffer_720P']:
+                a['buffer_720P'].append(row['result']['buffer_720P']['720P'])
+            if '1080P' in row['result']['buffer_1080P']:
+                a['buffer_1080P'].append(row['result']['buffer_1080P']['1080P'])
+            if '1440P' in row['result']['buffer_1440P']:
+                a['buffer_1440P'].append(row['result']['buffer_1440P']['1440P'])
+            if '2160P' in row['result']['buffer_2160P']:
+                a['buffer_2160P'].append(row['result']['buffer_2160P']['2160P'])
+        print("(load_data) return value--",a) #--
         return a
 
     def _load_image(self):
@@ -281,8 +296,10 @@ class HeatMapGenerator(object):
 
     def csv_to_json(self):
         """This method is to feed manual test result values into TITLE.json"""
+        buffers_types = ['720P','1080P','1440P','2160P']
         if len(self._data['survey_points']) == len(self.test_data):
             print('Generating HeatMaps.....')
+            print("survey points:-- before adding buffer keys(csv_to_json):\n", self._data['survey_points'])  # --
             for i in range(len(self._data['survey_points'])):
                 if 'tcp' in self._data['survey_points'][i]['result']:
                     self._data['survey_points'][i]['result']['tcp']['received_Mbps'] = self.test_data[i]['TCP UPLOAD']
@@ -301,6 +318,20 @@ class HeatMapGenerator(object):
                 # self._data['survey_points'][i]['result']['tx_power'] = self.test_data[i]['tx_power']
                 # self._data['survey_points'][i]['result']['frequency'] = self.test_data[i]['frequency'] * 1e-3
                 self._data['survey_points'][i]['result']['signal_mbm'] = self.test_data[i]['RSSI']
+                if '720P' in self.test_data[i]:
+                    buf_dic = {'buffer_720P':{'720P':self.test_data[i]['720P']}}
+                    self._data['survey_points'][i]['result'].update(buf_dic)
+                if '1080P' in self.test_data[i]:
+                    buf_dic = {'buffer_1080P':{'1080P':self.test_data[i]['1080P']}}
+                    self._data['survey_points'][i]['result'].update(buf_dic)
+                if '1440P' in self.test_data[i]:
+                    buf_dic = {'buffer_1440P':{'1440P':self.test_data[i]['1440P']}}
+                    self._data['survey_points'][i]['result'].update(buf_dic)
+                if '2160P' in self.test_data[i]:
+                    buf_dic = {'buffer_2160P':{'2160P':self.test_data[i]['2160P']}}
+                    self._data['survey_points'][i]['result'].update(buf_dic)
+            print("survey points:-- after adding buffer keys(csv_to_json):\n",self._data['survey_points']) #--
+
         else:
             print('Survey Points: ', len(self._data['survey_points']))
             print('Data Points: ', len(self.test_data))
@@ -490,6 +521,9 @@ class HeatMapGenerator(object):
         # begin color mapping
         if title == "Wi-Fi channel":
             self._cmap = cm.jet_r
+        elif title == "Buffer rate 720P" or title == "Buffer rate 1080P" or title == "Buffer rate 1440P" or \
+            title == "Buffer rate 2160P":
+            self._cmap = 'RdYlGn_r'
         else:
             self._cmap = self.get_cmap(self._cname)
 
