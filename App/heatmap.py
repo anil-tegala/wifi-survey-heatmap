@@ -142,9 +142,13 @@ class HeatMapGenerator(object):
         'channel': 'Wi-Fi channel',
         'channel_bitrate': 'Max channel bandwidth [MBit/s]',
         'buffer_720P': 'Buffer rate 720P',
+        'buffer_720P_percent': 'Buffer rate 720P percentage',
         'buffer_1080P': 'Buffer rate 1080P',
+        'buffer_1080P_percent': 'Buffer rate 1080P percentage',
         'buffer_1440P': 'Buffer rate 1440P',
+        'buffer_1440P_percent': 'Buffer rate 1440P percentage',
         'buffer_2160P': 'Buffer rate 2160P',
+        'buffer_2160P_percent': 'Buffer rate 2160P percentage',
     }
 
     def __init__(
@@ -238,9 +242,7 @@ class HeatMapGenerator(object):
 
     def load_data(self):
         a = defaultdict(list)
-        print("(Load_data)--",a) #--
         for row in self._data['survey_points']:
-            print("(Load_data)-- survey points",row) #--
             a['x'].append(row['x'])
             a['y'].append(row['y'])
             a['channel'].append(row['result']['channel'])
@@ -270,15 +272,26 @@ class HeatMapGenerator(object):
                 row['result']['ssid']
             )
             a['ap'].append(ap + ' ({0:.1f} GHz)'.format(1e-3 * int(row['result']['frequency'])))
+
             if 'buffer_720P' in row['result']:
-                a['buffer_720P'].append(row['result']['buffer_720P']['720P'])
+                a['buffer_720P'].append(row['result']['buffer_720P'])
+            if 'buffer_720P_percent' in row['result']:
+                a['buffer_720P_percent'].append(row['result']['buffer_720P_percent'])
+
             if 'buffer_1080P' in row['result']:
-                a['buffer_1080P'].append(row['result']['buffer_1080P']['1080P'])
+                a['buffer_1080P'].append(row['result']['buffer_1080P'])
+            if 'buffer_1080P_percent' in row['result']:
+                a['buffer_1080P_percent'].append(row['result']['buffer_1080P_percent'])
+
             if 'buffer_1440P' in row['result']:
-                a['buffer_1440P'].append(row['result']['buffer_1440P']['1440P'])
+                a['buffer_1440P'].append(row['result']['buffer_1440P'])
+            if 'buffer_1440P_percent' in row['result']:
+                a['buffer_1440P_percent'].append(row['result']['buffer_1440P_percent'])
+
             if 'buffer_2160P' in row['result']:
-                a['buffer_2160P'].append(row['result']['buffer_2160P']['2160P'])
-        print("(load_data) return value--",a) #--
+                a['buffer_2160P'].append(row['result']['buffer_2160P'])
+            if 'buffer_2160P_percent' in row['result']:
+                a['buffer_2160P_percent'].append(row['result']['buffer_2160P_percent'])
         return a
 
     def _load_image(self):
@@ -296,10 +309,8 @@ class HeatMapGenerator(object):
 
     def csv_to_json(self):
         """This method is to feed manual test result values into TITLE.json"""
-        buffers_types = ['720P','1080P','1440P','2160P']
         if len(self._data['survey_points']) == len(self.test_data):
             print('Generating HeatMaps.....')
-            print("survey points:-- before adding buffer keys(csv_to_json):\n", self._data['survey_points'])  # --
             for i in range(len(self._data['survey_points'])):
                 if 'tcp' in self._data['survey_points'][i]['result']:
                     self._data['survey_points'][i]['result']['tcp']['received_Mbps'] = self.test_data[i]['TCP UPLOAD']
@@ -318,19 +329,28 @@ class HeatMapGenerator(object):
                 # self._data['survey_points'][i]['result']['tx_power'] = self.test_data[i]['tx_power']
                 # self._data['survey_points'][i]['result']['frequency'] = self.test_data[i]['frequency'] * 1e-3
                 self._data['survey_points'][i]['result']['signal_mbm'] = self.test_data[i]['RSSI']
+
+                buf_dic = lambda x,y: {x:self.test_data[i][y]}
+
                 if '720P' in self.test_data[i]:
-                    buf_dic = {'buffer_720P':{'720P':self.test_data[i]['720P']}}
-                    self._data['survey_points'][i]['result'].update(buf_dic)
+                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_720P','720P'))
+                if '720P PERCENTAGE' in self.test_data[i]:
+                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_720P_percent','1080P PERCENTAGE'))
+
                 if '1080P' in self.test_data[i]:
-                    buf_dic = {'buffer_1080P':{'1080P':self.test_data[i]['1080P']}}
-                    self._data['survey_points'][i]['result'].update(buf_dic)
+                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_1080P','1080P'))
+                if '1080P PERCENTAGE' in self.test_data[i]:
+                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_1080P_percent','1080P PERCENTAGE'))
+
                 if '1440P' in self.test_data[i]:
-                    buf_dic = {'buffer_1440P':{'1440P':self.test_data[i]['1440P']}}
-                    self._data['survey_points'][i]['result'].update(buf_dic)
+                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_1440P','1440P'))
+                if '1440P PERCENTAGE' in self.test_data[i]:
+                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_1440P_percent','1440P PERCENTAGE'))
+
                 if '2160P' in self.test_data[i]:
-                    buf_dic = {'buffer_2160P':{'2160P':self.test_data[i]['2160P']}}
-                    self._data['survey_points'][i]['result'].update(buf_dic)
-            print("survey points:-- after adding buffer keys(csv_to_json):\n",self._data['survey_points']) #--
+                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_2160P','2160P'))
+                if '2160P PERCENTAGE' in self.test_data[i]:
+                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_2160P_percent','2160P PERCENTAGE'))
 
         else:
             print('Survey Points: ', len(self._data['survey_points']))
@@ -522,7 +542,9 @@ class HeatMapGenerator(object):
         if title == "Wi-Fi channel":
             self._cmap = cm.jet_r
         elif title == "Buffer rate 720P" or title == "Buffer rate 1080P" or title == "Buffer rate 1440P" or \
-            title == "Buffer rate 2160P":
+            title == "Buffer rate 2160P" or title == "Buffer rate 720P percentage" or \
+            title == "Buffer rate 1080P percentage" or title == "Buffer rate 1440P percentage" or \
+            title == "Buffer rate 2160P percentage":
             self._cmap = 'RdYlGn_r'
         else:
             self._cmap = self.get_cmap(self._cname)
@@ -532,6 +554,12 @@ class HeatMapGenerator(object):
                 title == "Upload (UDP) [MBit/s]")) and self._x_threshold is not None:
             vmin = self._x_threshold
             vmax = self._x_threshold
+
+        elif title == "Buffer rate 720P" or title == "Buffer rate 1080P" or title == "Buffer rate 1440P" or \
+            title == "Buffer rate 2160P" or title == "Buffer rate 720P percentage" or \
+            title == "Buffer rate 1080P percentage" or title == "Buffer rate 1440P percentage" or \
+            title == "Buffer rate 2160P percentage":
+            vmin, vmax = 0, 50
 
         if ((title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") or (title == "Upload (TCP) ["
                                                                                                       "MBit/s]") or (
