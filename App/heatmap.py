@@ -39,7 +39,7 @@ import sys
 import argparse
 import logging
 import json
-import numpy
+import numpy,math
 
 from collections import defaultdict
 import numpy as np
@@ -292,6 +292,10 @@ class HeatMapGenerator(object):
                 a['buffer_2160P'].append(row['result']['buffer_2160P'])
             if 'buffer_2160P_percent' in row['result']:
                 a['buffer_2160P_percent'].append(row['result']['buffer_2160P_percent'])
+
+            if 'ap_user_coord' in row['result']:
+                a['ap_user_coord'].append(row['result']['ap_user_coord'])
+
         return a
 
     def _load_image(self):
@@ -312,45 +316,56 @@ class HeatMapGenerator(object):
         if len(self._data['survey_points']) == len(self.test_data):
             print('Generating HeatMaps.....')
             for i in range(len(self._data['survey_points'])):
-                if 'tcp' in self._data['survey_points'][i]['result']:
-                    self._data['survey_points'][i]['result']['tcp']['received_Mbps'] = self.test_data[i]['TCP UPLOAD']
-                if 'tcp-reverse' in self._data['survey_points'][i]['result']:
-                    self._data['survey_points'][i]['result']['tcp-reverse']['received_Mbps'] = self.test_data[i][
-                        'TCP DOWNLOAD']
-                if 'udp' in self._data['survey_points'][i]['result']:
-                    self._data['survey_points'][i]['result']['udp']['Mbps'] = self.test_data[i]['UDP DOWNLOAD']
-                    self._data['survey_points'][i]['result']['udp']['jitter_ms'] = self.test_data[i]['JITTER DOWNLOAD']
-                if 'udp-reverse' in self._data['survey_points'][i]['result']:
-                    self._data['survey_points'][i]['result']['udp-reverse']['Mbps'] = self.test_data[i]['UDP UPLOAD']
-                    self._data['survey_points'][i]['result']['udp-reverse']['jitter_ms'] = self.test_data[i][
-                        'JITTER UPLOAD']
-                # if 'bitrate' in self._data['survey_points'][i]['result']:
-                #     self._data['survey_points'][i]['result']['bitrate'] = self.test_data[i]['channel_bitrate']
-                # self._data['survey_points'][i]['result']['tx_power'] = self.test_data[i]['tx_power']
-                # self._data['survey_points'][i]['result']['frequency'] = self.test_data[i]['frequency'] * 1e-3
-                self._data['survey_points'][i]['result']['signal_mbm'] = self.test_data[i]['RSSI']
+                try:
+                    if 'tcp' in self._data['survey_points'][i]['result'] and 'TCP UPLOAD' in self.test_data[i]:
+                        self._data['survey_points'][i]['result']['tcp']['received_Mbps'] = self.test_data[i]['TCP UPLOAD']
+                    if 'tcp-reverse' in self._data['survey_points'][i]['result'] and 'TCP DOWNLOAD' in self.test_data[i]:
+                        self._data['survey_points'][i]['result']['tcp-reverse']['received_Mbps'] = self.test_data[i][
+                            'TCP DOWNLOAD']
+                    if 'udp' in self._data['survey_points'][i]['result'] and 'UDP DOWNLOAD' in self.test_data[i]\
+                            and 'JITTER DOWNLOAD' in self.test_data[i]:
+                        self._data['survey_points'][i]['result']['udp']['Mbps'] = self.test_data[i]['UDP DOWNLOAD']
+                        self._data['survey_points'][i]['result']['udp']['jitter_ms'] = self.test_data[i]['JITTER DOWNLOAD']
+                    if 'udp-reverse' in self._data['survey_points'][i]['result'] and 'UDP UPLOAD' in self.test_data[i]\
+                            and 'JITTER UPLOAD' in self.test_data[i]:
+                        self._data['survey_points'][i]['result']['udp-reverse']['Mbps'] = self.test_data[i]['UDP UPLOAD']
+                        self._data['survey_points'][i]['result']['udp-reverse']['jitter_ms'] = self.test_data[i][
+                            'JITTER UPLOAD']
+                    # if 'bitrate' in self._data['survey_points'][i]['result']:
+                    #     self._data['survey_points'][i]['result']['bitrate'] = self.test_data[i]['channel_bitrate']
+                    # self._data['survey_points'][i]['result']['tx_power'] = self.test_data[i]['tx_power']
+                    # self._data['survey_points'][i]['result']['frequency'] = self.test_data[i]['frequency'] * 1e-3
+                    if 'RSSI' in self.test_data[i]:
+                        self._data['survey_points'][i]['result']['signal_mbm'] = self.test_data[i]['RSSI']
 
-                buf_dic = lambda x,y: {x:self.test_data[i][y]}
+                    buf_dic = lambda x,y: {x:self.test_data[i][y]}
 
-                if '720P' in self.test_data[i]:
-                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_720P','720P'))
-                if '720P PERCENTAGE' in self.test_data[i]:
-                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_720P_percent','1080P PERCENTAGE'))
+                    if '720P' in self.test_data[i]:
+                        self._data['survey_points'][i]['result'].update(buf_dic('buffer_720P','720P'))
+                    if '720P PERCENTAGE' in self.test_data[i]:
+                        self._data['survey_points'][i]['result'].update(buf_dic('buffer_720P_percent','1080P PERCENTAGE'))
 
-                if '1080P' in self.test_data[i]:
-                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_1080P','1080P'))
-                if '1080P PERCENTAGE' in self.test_data[i]:
-                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_1080P_percent','1080P PERCENTAGE'))
+                    if '1080P' in self.test_data[i]:
+                        self._data['survey_points'][i]['result'].update(buf_dic('buffer_1080P','1080P'))
+                    if '1080P PERCENTAGE' in self.test_data[i]:
+                        self._data['survey_points'][i]['result'].update(buf_dic('buffer_1080P_percent','1080P PERCENTAGE'))
 
-                if '1440P' in self.test_data[i]:
-                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_1440P','1440P'))
-                if '1440P PERCENTAGE' in self.test_data[i]:
-                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_1440P_percent','1440P PERCENTAGE'))
+                    if '1440P' in self.test_data[i]:
+                        self._data['survey_points'][i]['result'].update(buf_dic('buffer_1440P','1440P'))
+                    if '1440P PERCENTAGE' in self.test_data[i]:
+                        self._data['survey_points'][i]['result'].update(buf_dic('buffer_1440P_percent','1440P PERCENTAGE'))
 
-                if '2160P' in self.test_data[i]:
-                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_2160P','2160P'))
-                if '2160P PERCENTAGE' in self.test_data[i]:
-                    self._data['survey_points'][i]['result'].update(buf_dic('buffer_2160P_percent','2160P PERCENTAGE'))
+                    if '2160P' in self.test_data[i]:
+                        self._data['survey_points'][i]['result'].update(buf_dic('buffer_2160P','2160P'))
+                    if '2160P PERCENTAGE' in self.test_data[i]:
+                        self._data['survey_points'][i]['result'].update(buf_dic('buffer_2160P_percent','2160P PERCENTAGE'))
+
+                    if "BSSID" in self.test_data[i]:
+                        self._data['survey_points'][i]['result']['bssid'] = self.test_data[i]['BSSID']
+
+                except KeyError as e:
+                    print(f"{e}...continue plotting further heatmaps")
+                    continue
 
         else:
             print('Survey Points: ', len(self._data['survey_points']))
@@ -359,7 +374,7 @@ class HeatMapGenerator(object):
             exit()
 
     def generate(self):
-        self._load_image()
+        self._load_image() #self._image_path
         a = self.load_data()
         for x, y in self._corners:
             a['x'].append(x)
@@ -370,6 +385,7 @@ class HeatMapGenerator(object):
                 a['ap'].append(None)
                 a[k] = [0 if x is None else x for x in a[k]]
                 a[k].append(min(a[k]))
+
         self._channel_graphs()
         num_x = int(self._image_width / 4)
         num_y = int(num_x / (self._image_width / self._image_height))
@@ -379,12 +395,11 @@ class HeatMapGenerator(object):
         gx, gy = gx.flatten(), gy.flatten()
         for k, ptitle in self.graphs.items():
             try:
-                self._plot(
-                    a, k, '%s' % ptitle, gx, gy, num_x, num_y
-                )
+                self._plot(a, k, '%s' % ptitle, gx, gy, num_x, num_y)
             except:
                 logger.warning('Cannot create {} plot: '
                                'insufficient data'.format(k))
+        self.plot_ap_user(a['x'],a['y'])
 
     def _channel_to_signal(self):
         """
@@ -483,19 +498,39 @@ class HeatMapGenerator(object):
         )
         return at
 
+    def draw_ap_icon(self):
+        if self._ap_image is not None:
+            ap_image = imread(self._ap_image)
+            imagebox = OffsetImage(ap_image, zoom=0.25)
+            if self._ap_cords is not None:
+                if len(self._ap_cords) % 2 != 0:
+                    logger.error("number of coordinates (x,y) should be even in number")
+                    exit()
+                else:
+                    for x, y in zip(*[iter(self._ap_cords)] * 2):
+                        print("Setting AP Icon at %dpx and %dpx" % (x, y))
+                        ab = AnnotationBbox(imagebox, (x, y), frameon=False)
+                        ax.add_artist(ab)
+            else:
+                logger.error("Coordinates are required to set AP Icon on Plot")
+                exit()
+
     def _plot(self, a, key, title, gx, gy, num_x, num_y):
         print('Plotting: %s graph' % key)
         if key not in a:
-            logger.info("Skipping {} due to insufficient data".format(key))
+            #print("Skipping {} due to insufficient data") #--
+            logger.info("Skipping {} due to insufficient data".format(key)) #--
             return
         if not len(a['x']) == len(a['y']) == len(a[key]):
-            logger.info("Skipping {} because data has holes".format(key))
+            #print("Skipping {} because data has holes") #--
+            logger.info("Skipping {} because data has holes".format(key)) #--
             return
         logger.debug('Plotting: %s', key)
         pp.rcParams['figure.figsize'] = (
             self._image_width / 300, self._image_height / 300
         )
         fig, ax = pp.subplots()
+        #pp.show()
         ax.set_title(title, fontsize=8)
         # ax.set_xlim(0, num_x)
         # ax.set_ylim(0, num_y)
@@ -546,6 +581,8 @@ class HeatMapGenerator(object):
             title == "Buffer rate 1080P percentage" or title == "Buffer rate 1440P percentage" or \
             title == "Buffer rate 2160P percentage":
             self._cmap = 'RdYlGn_r'
+        # elif title == "AP user coordinate":
+        #     self._cmap = 'hsv'#Set1'
         else:
             self._cmap = self.get_cmap(self._cname)
 
@@ -560,6 +597,9 @@ class HeatMapGenerator(object):
             title == "Buffer rate 1080P percentage" or title == "Buffer rate 1440P percentage" or \
             title == "Buffer rate 2160P percentage":
             vmin, vmax = 0, 50
+
+        # elif title == "AP user coordinate":
+        #     vmin, vmax = 0, 4
 
         if ((title == "Download (TCP) [MBit/s]") or (title == "Download (UDP) [MBit/s]") or (title == "Upload (TCP) ["
                                                                                                       "MBit/s]") or (
@@ -590,6 +630,29 @@ class HeatMapGenerator(object):
                 alpha=0.5, zorder=100,
                 cmap=self._cmap
             )
+        # elif title == 'AP user coordinate':
+        #     #fig.subplots_adjust(bottom=0.5)
+        #     # cmap = mpl.colors.ListedColormap(['red','white']) #'green', 'blue', 'cyan', 'white'
+        #     # bounds = [0, 1]
+        #     # #norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+        #     # norm = mpl.colors.Normalize(vmin=bounds[0], vmax=bounds[-1]+1)
+        #     # plt.colorbar(norm=norm,cmap=cmap,ticks=bounds,spacing='proportional',
+        #     #                     orientation='horizontal',)
+        #     # cb2 = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
+        #     #                                 norm=norm,
+        #     #                                 #boundaries=[0] + bounds + [13],
+        #     #                                 #extend='both',
+        #     #                                 ticks=bounds,
+        #     #                                 spacing='proportional',
+        #     #                                 orientation='horizontal')
+        #     cmap = 'pink' #'BuPu'#'Reds''Greens'
+        #     image = ax.imshow(
+        #         z,
+        #         extent=(0, self._image_width, self._image_height, 0),
+        #         alpha=0.5, zorder=100,cmap=cmap, norm=norm,
+        #         #vmin=0, vmax=50 #bounds[0], vmax=bounds[-1]+1
+        #     )
+
         else:
             image = ax.imshow(
                 z,
@@ -626,7 +689,7 @@ class HeatMapGenerator(object):
         ax.imshow(self._layout, interpolation='bicubic', zorder=1, alpha=1)
         labelsize = 1
         if self._showpoints:
-            # begin plotting points
+            # begin plotting pois not a valid value for name; ints
             for idx in range(0, len(a['x'])):
                 if (a['x'][idx], a['y'][idx]) in self._corners:
                     continue
@@ -641,25 +704,129 @@ class HeatMapGenerator(object):
                     horizontalalignment='center'
                 )
             # end plotting points
-        if self._ap_image is not None:
-            ap_image = imread(self._ap_image)
-            imagebox = OffsetImage(ap_image, zoom=0.25)
-            if self._ap_cords is not None:
-                if len(self._ap_cords) % 2 != 0:
-                    logger.error("number of coordinates (x,y) should be even in number")
-                    exit()
-                else:
-                    for x, y in zip(*[iter(self._ap_cords)] * 2):
-                        print("Setting AP Icon at %dpx and %dpx" % (x, y))
-                        ab = AnnotationBbox(imagebox, (x, y), frameon=False)
-                        ax.add_artist(ab)
-            else:
-                logger.error("Coordinates are required to set AP Icon on Plot")
-                exit()
+        self.draw_ap_icon()
+        # if self._ap_image is not None:
+        #     ap_image = imread(self._ap_image)
+        #     imagebox = OffsetImage(ap_image, zoom=0.25)
+        #     if self._ap_cords is not None:
+        #         if len(self._ap_cords) % 2 != 0:
+        #             logger.error("number of coordinates (x,y) should be even in number")
+        #             exit()
+        #         else:
+        #             for x, y in zip(*[iter(self._ap_cords)] * 2):
+        #                 print("Setting AP Icon at %dpx and %dpx" % (x, y))
+        #                 ab = AnnotationBbox(imagebox, (x, y), frameon=False)
+        #                 ax.add_artist(ab)
+        #     else:
+        #         logger.error("Coordinates are required to set AP Icon on Plot")
+        #         exit()
         fname = '%s_%s.png' % (key, self._title)
         logger.info('Writing plot to: %s', fname)
         pp.savefig(fname, dpi=300)
         pp.close('all')
+
+    def plot_ap_user(self,x,y):
+        def kde_quartic(d, h):
+            dn = d / h
+            P = (15 / 16) * (1 - dn ** 2) ** 2
+            return P
+        # X,Y = [],[]
+        # self.ap_coord_data = pd.read_csv(file).to_dict(orient='index')
+        # crd = self.ap_coord_data['Position'].tolist()
+        # bssid = self.ap_coord_data['BSSID'].tolist()
+
+        # for f in file:
+        #     with open(f, 'r') as fh:
+        #         self.ap_coord_data = json.loads(fh.read())
+        #     _x,_y = [],[]
+        #     for sp in self.ap_coord_data['survey_points']:
+        #         _x.append(sp['x'])
+        #         _y.append(sp['y'])
+        #     X.append(_x)
+        #     Y.append(_y)
+        bs = {}
+        for i in range(len(self.test_data)):
+            if self.test_data[i]['AP No'] not in bs:
+                # a[1:a.find(',')], a[a.find(',')+1:-1]
+                bs.update({self.test_data[i]['AP No']:
+                               {'x': [x[i]],
+                                'y': [y[i]]}
+                           })
+
+            else:
+                bs[self.test_data[i]['AP No']]['x'].append(x[i])
+                bs[self.test_data[i]['AP No']]['y'].append(y[i])
+        print(f"points:\n{bs}")
+        # cmap = ['Blues', 'Greens', 'Reds', 'Greys', 'Oranges', 'Purples', 'cool', 'autumn', 'summer', 'winter', 'magma',
+        #         'pink', 'bone', 'spring']
+        cmap = ['#FFC0CB','#7BC8F6','silver','r','coral','aqua','#808080','salmon','ivory','orange',
+                'tan','#DA70D6', '#00008B','#7E1E9C','g',]
+        # cmap = []
+        # DEFINE GRID SIZE AND RADIUS(h)
+        grid_size = 10
+        h = 300
+        # CONSTRUCT GRID
+        x_grid = np.arange(0, self._layout.shape[1], grid_size)
+        y_grid = np.arange(0, self._layout.shape[0], grid_size)
+        x_mesh, y_mesh = np.meshgrid(x_grid, y_grid)
+
+        # GRID CENTER POINT
+        xc = x_mesh + (grid_size / 2)
+        yc = y_mesh + (grid_size / 2)
+
+        fig, ax = pp.subplots(figsize=(20,8))
+        # pp.figure(figsize=(12,4))
+        clr_value = -1
+        for x in bs:
+            clr_value += 1
+            # PROCESSING
+            intensity_list = []
+            for j in range(len(xc)):
+                intensity_row = []
+                for k in range(len(xc[0])):
+                    kde_value_list = []
+                    for i in range(len(bs[x]['x'])):
+                        # CALCULATE DISTANCE
+                        d = math.sqrt((xc[j][k] - bs[x]['x'][i]) ** 2 + (yc[j][k] - bs[x]['y'][i]) ** 2)
+                        # d=math.sqrt((xc[j][k]-x[i])**2+(yc[j][k]-y[i])**2)
+                        if d <= h:
+                            p = kde_quartic(d, h)
+                        else:
+                            p = 0
+                        kde_value_list.append(p)
+                    # SUM ALL INTENSITY VALUE
+                    p_total = sum(kde_value_list)
+                    intensity_row.append(p_total)
+                intensity_list.append(intensity_row)
+
+            # HEATMAP OUTPUT
+            intensity = np.array(intensity_list)
+            ax.pcolormesh(x_mesh, y_mesh, np.where(intensity == 0, np.nan, intensity),  # np.nan
+                          alpha=0.4, shading='auto',  # edgecolors='none',
+                          # cmap=cmap[clr_value]
+                          cmap=mpl.colors.ListedColormap([cmap[clr_value]]),  # norm=norm
+                          )
+            # pp.plot(bs[x]['x'], bs[x]['y'], 'ro')
+        ax.imshow(self._layout)
+        ax.axis('off')
+        ax.set_title("AP user positions", fontsize=12)
+        # ax.set_title(xticklabels=[],xlabel=None)
+        # ax.grid(False)
+        # ax.imshow(im)
+        # fig.colorbar(mpl.cm.ScalarMappable(cmap=mpl.colors.ListedColormap(['b','g','r'])),)
+        cb = pp.colorbar(mpl.cm.ScalarMappable(cmap=mpl.colors.ListedColormap(cmap[0:len(bs)])),  # norm=norm,
+                          ticks=np.linspace(0, 1, len(bs), endpoint=False) + 1 / (2 * len(bs)))
+        # cb = pp.colorbar(mpl.cm.ScalarMappable(
+        #     cmap=mpl.colors.LinearSegmentedColormap.from_list('custom color', cmap1)),
+        #                                                         ,'cyan','magenta',
+        #                                                          'red','orange','yellow','green','yellow','blue','green'])),
+        # ticks = np.linspace(0, 1, len(bs), endpoint=False) + 1 / (2 * len(bs)))
+        cb.ax.set_yticklabels(list(bs.keys()))
+        cb.ax.axes.tick_params(length=0)
+        
+        self.draw_ap_icon()
+                
+        pp.savefig("/home/karthikaeyetea/wifi-survey-heatmap/tests/heatmap_AP_user_coord_4.png", dpi=300)
 
 
 def parse_args(argv):
@@ -683,7 +850,7 @@ def parse_args(argv):
                         'which AP it was connected to. Useful when doing '
                         'multi-AP surveys.')
     p.add_argument('-c', '--cmap', type=str, dest='CNAME', action='store',
-                   default="RdYlGn",
+                   default= "RdYlGn",
                    help='If specified, a valid matplotlib colormap name.')
     p.add_argument('-n', '--contours', type=int, dest='N', action='store',
                    default=None, help='If specified, N contour lines will '
@@ -708,6 +875,7 @@ def parse_args(argv):
                    help='Minimum Threshold to be set for upload and download with tcp/udp')
     p.add_argument('-x', '--x_threshold', dest='x_threshold', type=int, action='store', default=None,
                    help='set Average threshold for upload and download with tcp/udp')
+
     args = p.parse_args(argv)
     if len(args.coords) > 1:
         args.coords = args.coords.split(",")
@@ -742,7 +910,6 @@ def set_log_level_format(level, format):
     logger.handlers[0].setFormatter(formatter)
     logger.setLevel(level)
 
-
 def main():
     args = parse_args(sys.argv[1:])
 
@@ -754,11 +921,13 @@ def main():
 
     showpoints = True if args.showpoints > 0 else False
 
-    HeatMapGenerator(
+    heatmap_obj = HeatMapGenerator(
         args.IMAGE, args.TITLE, showpoints, args.CNAME, args.N,
         ignore_ssids=args.ignore, aps=args.aps, thresholds=args.thresholds, test_result=args.RESULT, ap_image=args.ICON,
         ap_cords=args.coords, min_limit=args.min_limit, max_limit=args.max_limit, x_threshold=args.x_threshold
-    ).generate()
+        )
+    heatmap_obj.generate()
+
 
 
 if __name__ == '__main__':
