@@ -154,7 +154,7 @@ class HeatMapGenerator(object):
     def __init__(
             self, image_path, title, showpoints, cname, contours, ignore_ssids=[], aps=None,
             thresholds=None, test_result=None, ap_image=None, ap_icon=None, ap_cords=[],
-            min_limit=None, max_limit=None, x_threshold=None,bssid_ap=None
+            min_limit=None, max_limit=None, x_threshold=None,bssid_ap=None,ap_color=None
     ):
         self._ap_names = {}
         if aps is not None:
@@ -178,6 +178,7 @@ class HeatMapGenerator(object):
         self._max_limit = max_limit
         self._x_threshold = x_threshold
         self.bssid_ap = bssid_ap.upper()
+        self.ap_color = ap_color
         if not self._title.endswith('.json'):
             self._title += '.json'
         if self._test_result is not None and not self._test_result.endswith('.csv'):
@@ -294,7 +295,7 @@ class HeatMapGenerator(object):
                 a['buffer_2160P'].append(row['result']['buffer_2160P'])
             if 'buffer_2160P_percent' in row['result']:
                 a['buffer_2160P_percent'].append(row['result']['buffer_2160P_percent'])
-                
+
             if 'AP No' in row['result']:
                 a['AP No'].append(row['result']['AP No'])
         return a
@@ -400,10 +401,10 @@ class HeatMapGenerator(object):
             except:
                 logger.warning('Cannot create {} plot: '
                                'insufficient data'.format(k))
-        if 'AP No' in a:
-            self.plot_ap_user(a['x'],a['y'],ap_no=a['AP No'],)
-        elif 'bssid' in a:
+        if self.bssid_ap != 'NONE ':
             self.plot_ap_user(a['x'],a['y'],bssid_json=a['bssid'],)
+        elif 'AP No' in a:
+            self.plot_ap_user(a['x'], a['y'], ap_no=a['AP No'], )
 
     def _channel_to_signal(self):
         """
@@ -522,11 +523,9 @@ class HeatMapGenerator(object):
     def _plot(self, a, key, title, gx, gy, num_x, num_y):
         print('Plotting: %s graph' % key)
         if key not in a:
-            #print("Skipping {} due to insufficient data") #--
             logger.info("Skipping {} due to insufficient data".format(key)) #--
             return
         if not len(a['x']) == len(a['y']) == len(a[key]):
-            #print("Skipping {} because data has holes") #--
             logger.info("Skipping {} because data has holes".format(key)) #--
             return
         logger.debug('Plotting: %s', key)
@@ -585,7 +584,7 @@ class HeatMapGenerator(object):
             title == "Buffer rate 1080P percentage" or title == "Buffer rate 1440P percentage" or \
             title == "Buffer rate 2160P percentage":
             self._cmap = 'RdYlGn_r'
-        
+
         else:
             self._cmap = self.get_cmap(self._cname)
 
@@ -682,22 +681,22 @@ class HeatMapGenerator(object):
                     horizontalalignment='center'
                 )
             # end plotting points
-        # self.draw_ap_icon(ax)
-        if self._ap_image is not None:
-            ap_image = imread(self._ap_image)
-            imagebox = OffsetImage(ap_image, zoom=0.25)
-            if self._ap_cords is not None:
-                if len(self._ap_cords) % 2 != 0:
-                    logger.error("number of coordinates (x,y) should be even in number")
-                    exit()
-                else:
-                    for x, y in zip(*[iter(self._ap_cords)] * 2):
-                        print("Setting AP Icon at %dpx and %dpx" % (x, y))
-                        ab = AnnotationBbox(imagebox, (x, y), frameon=False)
-                        ax.add_artist(ab)
-            else:
-                logger.error("Coordinates are required to set AP Icon on Plot")
-                exit()
+        self.draw_ap_icon(ax)
+        # if self._ap_image is not None:
+        #     ap_image = imread(self._ap_image)
+        #     imagebox = OffsetImage(ap_image, zoom=0.25)
+        #     if self._ap_cords is not None:
+        #         if len(self._ap_cords) % 2 != 0:
+        #             logger.error("number of coordinates (x,y) should be even in number")
+        #             exit()
+        #         else:
+        #             for x, y in zip(*[iter(self._ap_cords)] * 2):
+        #                 print("Setting AP Icon at %dpx and %dpx" % (x, y))
+        #                 ab = AnnotationBbox(imagebox, (x, y), frameon=False)
+        #                 ax.add_artist(ab)
+        #     else:
+        #         logger.error("Coordinates are required to set AP Icon on Plot")
+        #         exit()
         fname = '%s_%s.png' % (key, self._title)
         logger.info('Writing plot to: %s', fname)
         pp.savefig(fname, dpi=300)
@@ -717,29 +716,32 @@ class HeatMapGenerator(object):
             P = (15 / 16) * (1 - dn ** 2) ** 2
             return P
 
-        if bssid_json:
-            for i in range(len(bssid_json)):
-                bssid = bssid_json[i][-5:].replace(":","").upper()
-                if bssid in self.bssid_ap:
-                    if self.bssid_ap[self.bssid_ap.index(bssid)+4] == ',':
-                        temp = self.bssid_ap[self.bssid_ap.index(bssid):self.bssid_ap.index(bssid)+4] +"-"+ \
-                               self.bssid_ap[self.bssid_ap.index(bssid)+10:self.bssid_ap.index(bssid)+13]
-                    elif self.bssid_ap[self.bssid_ap.index(bssid) + 4] == '-':
-                        temp = self.bssid_ap[self.bssid_ap.index(bssid):self.bssid_ap.index(bssid) + 4] + "-"+\
-                               self.bssid_ap[self.bssid_ap.index(bssid) + 5:self.bssid_ap.index(bssid) + 8]
-                update_bssid(temp)
-        elif ap_no:
-            for i in range(len(ap_no)):
-                temp = ap_no[i] 
-                update_bssid(temp)
+        try:
+            if bssid_json:
+                for i in range(len(bssid_json)):
+                    bssid = bssid_json[i][-5:].replace(":","").upper()
+                    if bssid in self.bssid_ap:
+                        if self.bssid_ap[self.bssid_ap.index(bssid)+4] == ',':
+                            temp = self.bssid_ap[self.bssid_ap.index(bssid):self.bssid_ap.index(bssid)+4] +"-"+ \
+                                   self.bssid_ap[self.bssid_ap.index(bssid)+10:self.bssid_ap.index(bssid)+13]
+                        elif self.bssid_ap[self.bssid_ap.index(bssid) + 4] == '-':
+                            temp = self.bssid_ap[self.bssid_ap.index(bssid):self.bssid_ap.index(bssid) + 4] + "-"+\
+                                   self.bssid_ap[self.bssid_ap.index(bssid) + 5:self.bssid_ap.index(bssid) + 8]
+                    update_bssid(temp)
+            elif ap_no:
+                for i in range(len(ap_no)):
+                    temp = ap_no[i]
+                    update_bssid(temp)
+        except Exception as e:
+            print(f"{e}\n")
         print(f"points:\n{bs}")
         # cmap = ['Blues', 'Greens', 'Reds', 'Greys', 'Oranges', 'Purples', 'cool', 'autumn', 'summer', 'winter', 'magma',
         #         'pink', 'bone', 'spring']
-        cmap = ['#FFC0CB','#7BC8F6','silver','r','coral','aqua','#808080','salmon','ivory','orange',
-                'tan','#DA70D6', '#00008B','#7E1E9C','g',]
-        # cmap = []
+        # cmap = ['#FFC0CB','#7BC8F6','silver','r','coral','aqua','#808080','salmon','ivory','orange',
+        #         'tan','#DA70D6', '#00008B','#7E1E9C','g',]
+        cmap = self.ap_color
         # DEFINE GRID SIZE AND RADIUS(h)
-        grid_size = 10
+        grid_size = 13
         h = 320
         # CONSTRUCT GRID
         x_grid = np.arange(0, self._layout.shape[1], grid_size)
@@ -777,11 +779,16 @@ class HeatMapGenerator(object):
 
             # HEATMAP OUTPUT
             intensity = np.array(intensity_list)
-            ax.pcolormesh(x_mesh, y_mesh, np.where(intensity == 0, np.nan, intensity),  # np.nan
-                          alpha=0.4, shading='auto',  # edgecolors='none',
-                          # cmap=cmap[clr_value]
-                          cmap=mpl.colors.ListedColormap([cmap[clr_value]]),  # norm=norm
-                          )
+            try:
+                ax.pcolormesh(x_mesh, y_mesh, np.where(intensity == 0, np.nan, intensity),  # np.nan
+                              alpha=0.4, shading='auto',  # edgecolors='none',
+                              # cmap=cmap[clr_value]
+                              cmap=mpl.colors.ListedColormap([cmap[clr_value]]),  # norm=norm
+                              )
+            except IndexError as e:
+                print(f"AP-color :{len(cmap)}\n{cmap}\nAPno :{len(bs.keys())}\n{bs.keys()}")
+                exit()
+
             # pp.plot(bs[x]['x'], bs[x]['y'], 'ro')
         ax.imshow(self._layout)
         ax.axis('off')
@@ -799,24 +806,25 @@ class HeatMapGenerator(object):
         # ticks = np.linspace(0, 1, len(bs), endpoint=False) + 1 / (2 * len(bs)))
         cb.ax.set_yticklabels(list(bs.keys()))
         cb.ax.axes.tick_params(length=0)
-        
-        # self.draw_ap_icon(ax)
-        if self._ap_image is not None:
-            ap_image = imread(self._ap_image)
-            imagebox = OffsetImage(ap_image, zoom=0.25)
-            if self._ap_cords is not None:
-                if len(self._ap_cords) % 2 != 0:
-                    logger.error("number of coordinates (x,y) should be even in number")
-                    exit()
-                else:
-                    for x, y in zip(*[iter(self._ap_cords)] * 2):
-                        print("Setting AP Icon at %dpx and %dpx" % (x, y))
-                        ab = AnnotationBbox(imagebox, (x, y), frameon=False)
-                        ax.add_artist(ab)
-            else:
-                logger.error("Coordinates are required to set AP Icon on Plot")
-                exit()
-        pp.savefig("heatmap_AP_user_coord_now.png", dpi=300)
+
+        self.draw_ap_icon(ax)
+        # if self._ap_image is not None:
+        #     ap_image = imread(self._ap_image)
+        #     imagebox = OffsetImage(ap_image, zoom=0.25)
+        #     if self._ap_cords is not None:
+        #         if len(self._ap_cords) % 2 != 0:
+        #             logger.error("number of coordinates (x,y) should be even in number")
+        #             exit()
+        #         else:
+        #             for x, y in zip(*[iter(self._ap_cords)] * 2):
+        #                 print("Setting AP Icon at %dpx and %dpx" % (x, y))
+        #                 ab = AnnotationBbox(imagebox, (x, y), frameon=False)
+        #                 ax.add_artist(ab)
+        #     else:
+        #         logger.error("Coordinates are required to set AP Icon on Plot")
+        #         exit()
+        print("Plotting: Diff_AP_user_coord.png")
+        pp.savefig("Diff_AP_user_coord.png", dpi=300)
 
 
 def parse_args(argv):
@@ -865,9 +873,12 @@ def parse_args(argv):
                    help='Minimum Threshold to be set for upload and download with tcp/udp')
     p.add_argument('-x', '--x_threshold', dest='x_threshold', type=int, action='store', default=None,
                    help='set Average threshold for upload and download with tcp/udp')
-    p.add_argument('-ba', '--bssid_ap', default=None,
+    p.add_argument('-ba', '--bssid_ap', default='None',
                    help='Provide bssids along with AP no. in the format of (2.4G Bssid, 5G Bssid)-APno'
                         'eg: "41FF,42GH-AP1 02AX,23EE-AP3"')
+    p.add_argument('-ac','--ap_color', nargs='+', default=['#FFC0CB','#7BC8F6','silver','r','coral','aqua','#808080',
+                   'salmon','ivory','orange','tan','#DA70D6', '#00008B','#7E1E9C','g',],
+                   help="Give number of AP colors with respect to bssid.")
     args = p.parse_args(argv)
     if len(args.coords) > 1:
         args.coords = args.coords.split(",")
@@ -917,7 +928,7 @@ def main():
         args.IMAGE, args.TITLE, showpoints, args.CNAME, args.N,
         ignore_ssids=args.ignore, aps=args.aps, thresholds=args.thresholds, test_result=args.RESULT, ap_image=args.ICON,
         ap_cords=args.coords, min_limit=args.min_limit, max_limit=args.max_limit, x_threshold=args.x_threshold,
-        bssid_ap=f"{args.bssid_ap} ")
+        bssid_ap=f"{args.bssid_ap} ", ap_color=args.ap_color)
     heatmap_obj.generate()
 
 
