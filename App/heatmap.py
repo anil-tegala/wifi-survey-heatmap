@@ -627,7 +627,7 @@ class HeatMapGenerator(object):
                 z,
                 extent=(0, self._image_width, self._image_height, 0),
                 alpha=0.5, zorder=100,
-                cmap=self._cmap
+                cmap=self._cmap,vmin=min(list(set(a[key]))),vmax=max(list(set(a[key])))
             )
 
         else:
@@ -682,21 +682,6 @@ class HeatMapGenerator(object):
                 )
             # end plotting points
         self.draw_ap_icon(ax)
-        # if self._ap_image is not None:
-        #     ap_image = imread(self._ap_image)
-        #     imagebox = OffsetImage(ap_image, zoom=0.25)
-        #     if self._ap_cords is not None:
-        #         if len(self._ap_cords) % 2 != 0:
-        #             logger.error("number of coordinates (x,y) should be even in number")
-        #             exit()
-        #         else:
-        #             for x, y in zip(*[iter(self._ap_cords)] * 2):
-        #                 print("Setting AP Icon at %dpx and %dpx" % (x, y))
-        #                 ab = AnnotationBbox(imagebox, (x, y), frameon=False)
-        #                 ax.add_artist(ab)
-        #     else:
-        #         logger.error("Coordinates are required to set AP Icon on Plot")
-        #         exit()
         fname = '%s_%s.png' % (key, self._title)
         logger.info('Writing plot to: %s', fname)
         pp.savefig(fname, dpi=300)
@@ -808,21 +793,6 @@ class HeatMapGenerator(object):
         cb.ax.axes.tick_params(length=0)
 
         self.draw_ap_icon(ax)
-        # if self._ap_image is not None:
-        #     ap_image = imread(self._ap_image)
-        #     imagebox = OffsetImage(ap_image, zoom=0.25)
-        #     if self._ap_cords is not None:
-        #         if len(self._ap_cords) % 2 != 0:
-        #             logger.error("number of coordinates (x,y) should be even in number")
-        #             exit()
-        #         else:
-        #             for x, y in zip(*[iter(self._ap_cords)] * 2):
-        #                 print("Setting AP Icon at %dpx and %dpx" % (x, y))
-        #                 ab = AnnotationBbox(imagebox, (x, y), frameon=False)
-        #                 ax.add_artist(ab)
-        #     else:
-        #         logger.error("Coordinates are required to set AP Icon on Plot")
-        #         exit()
         print("Plotting: Diff_AP_user_coord.png")
         pp.savefig("Diff_AP_user_coord.png", dpi=300)
 
